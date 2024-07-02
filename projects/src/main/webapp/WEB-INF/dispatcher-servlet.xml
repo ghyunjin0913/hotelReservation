@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:c="http://www.springframework.org/schema/c"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
+
+
+	<mvc:annotation-driven />
+	<!-- /가 webapp폴더. root이다.  -->
+	<!-- properties에서 deployment assembly로 경로 확인 -->
+	<!-- ** 해당 폴더 하위 폴더 전체 -->
+	<mvc:resources location="/resources/" mapping="/resources/**" />
+	<mvc:resources location="/resources/images/" mapping="/images/**" />
+	<mvc:resources location="/resources/css/" mapping="/css/**" />
+	<mvc:resources location="/resources/js/" mapping="/js/**" />
+
+		
+	<context:component-scan base-package="hotelReservation" />	
+	
+	<bean name="viewresolver" 
+		  class="org.springframework.web.servlet.view.InternalResourceViewResolver"  
+		  p:prefix="/WEB-INF/views/" p:suffix=".jsp">
+	</bean>
+		
+	<bean name="datasource" 
+		  class="org.apache.commons.dbcp2.BasicDataSource" 
+	      p:driverClassName="oracle.jdbc.OracleDriver" 
+		  p:url="jdbc:oracle:thin:@115.21.149.194:1521:orcl"  
+		  p:username="dst09" p:password="dst09" />
+		
+	<bean name="sqlSessionFactoryBean" 
+		  class="org.mybatis.spring.SqlSessionFactoryBean" 
+		  p:dataSource-ref="datasource" 
+		  p:mapperLocations="classpath:/myBatis/*.xml" 
+		  p:typeAliasesPackage="hotelReservation.dto" />
+	
+	<bean name="sqlSessionTemplate"  
+		  class="org.mybatis.spring.SqlSessionTemplate" 
+		  c:sqlSessionFactory-ref="sqlSessionFactoryBean" />
+				
+</beans>

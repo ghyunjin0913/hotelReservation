@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+"-//mybatis.org//DTD MAPPER 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="stock">
+
+	<!-- 예약취소 재고 증가 -->
+	<update id="add" parameterType="Stock">
+    	<![CDATA[ 
+    	UPDATE stock 
+    	SET AMOUNTS=AMOUNTS+1
+    	WHERE tcode=#{tcode} AND 
+    	TO_DATE(#{checkin}, 'YYYY-MM-DD')<=SDATE AND SDATE<TO_DATE(#{checkout}, 'YYYY-MM-DD')
+
+    	]]>
+	</update>
+
+
+	<!-- 예약완료 재고 감소 -->
+	<update id="subtract" parameterType="Stock">
+		<![CDATA[ 
+   		UPDATE stock 
+    	SET AMOUNTS=AMOUNTS-1
+    	WHERE tcode=#{tcode} AND 
+		TO_DATE(#{checkin}, 'YYYY-MM-DD')<=SDATE AND SDATE<TO_DATE(#{checkout}, 'YYYY-MM-DD')
+		AND AMOUNTS>0
+		]]>
+	</update>
+	 
+</mapper>

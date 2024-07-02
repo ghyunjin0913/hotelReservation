@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+"-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="logIn">
+
+	<select id="cLogIn" parameterType="CustomerLogIn" resultType="String">
+		<![CDATA[
+		SELECT cname
+		FROM customer
+		WHERE cid = #{cid} AND cpw = #{cpw} 
+		]]>
+	</select>
+	
+	
+	<select id="hLogIn" parameterType="HotelLogIn" resultType="String">
+		<![CDATA[
+		SELECT hname
+		FROM hotel
+		WHERE hid = #{hid} AND hpw = #{hpw} 
+		]]>
+	</select>
+	
+	
+	<select id="eLogIn" parameterType="EmpLogIn" resultType="String">
+		<![CDATA[
+		SELECT ename
+		FROM emp
+		WHERE eid = #{eid} AND epw = #{epw} 
+		]]>
+	</select>
+	
+	
+	<select id="cMyInfo" parameterType="String" resultType="CustomerMyInfo">
+		<![CDATA[
+		SELECT cid, cname, firstname, lastname, cmail, cphone
+		FROM customer
+		WHERE cid = #{cid}
+		]]>
+	</select>
+	
+	
+	<select id="eMyInfo" parameterType="String" resultType="EmpMyInfo">
+		<![CDATA[
+		SELECT eid, ename, email, ephone, dno, position, status, to_char(joindate, 'yy/mm/dd') AS joinDate, retiredate
+		FROM emp
+		WHERE eid = #{eid}
+		]]>
+	</select>
+	
+	
+	<select id="hMyInfo" parameterType="string" resultType="HotelMyInfo">
+		<![CDATA[
+		SELECT hid, hname, grade, location, hmail, hphone
+		FROM hotel
+		WHERE hid = #{hid}
+		]]>
+	</select>
+	
+	<!-- 아이디중복 -->
+	<select id="cidCheck" resultType="int">
+		<![CDATA[
+		SELECT count(*)
+		FROM customer
+		WHERE cid = #{cid}
+		]]>
+	</select>
+	
+	
+	<select id="eidCheck" resultType="int">
+		<![CDATA[
+		SELECT count(*)
+		FROM emp
+		WHERE eid = #{eid}
+		]]>
+	</select>
+	
+	
+	<select id="hidCheck" resultType="int">
+		<![CDATA[
+		SELECT count(*)
+		FROM hotel
+		WHERE hid = #{hid}
+		]]>
+	</select>
+	
+	<select id="cpwCheck" resultType="int">
+	SELECT count(*)
+	FROM customer
+	WHERE cpw = #{cpw}
+	</select>
+	
+	<select id="epwCheck" resultType="int">
+	SELECT count(*)
+	FROM emp
+	WHERE epw = #{epw}
+	</select>
+	
+	<select id="hpwCheck" resultType="int">
+	SELECT count(*)
+	FROM hotel
+	WHERE hpw = #{hpw}
+	</select>
+	
+	
+	<insert id="cSignUp" parameterType="CustomerSignUp">
+		<![CDATA[
+		INSERT INTO customer VALUES(#{cid}, #{cpw}, #{cname}, #{firstname}, #{lastname}, #{cmail}, #{cphone}, to_date(sysdate,'yy/mm/dd'), '일반')
+		]]>
+	</insert>
+	
+	
+	<insert id="eSignUp" parameterType="EmpSignUp">
+		<![CDATA[
+		INSERT INTO emp VALUES(#{eid}, #{epw}, #{ename}, #{email}, #{ephone}, 1, '인턴', 'y', to_date(sysdate, 'yy/mm/dd'), null)
+		]]>
+	</insert>
+	
+	
+	<insert id="hSignUp" parameterType="HotelSignUp">
+		<![CDATA[
+		INSERT INTO hotel VALUES(#{hid}, #{hpw}, #{hname}, #{grade}, #{location}, #{hmail}, #{hphone}, to_date(sysdate, 'yy/mm/dd'))
+		]]>
+	</insert>
+	
+	
+	<update id="updateCustomer" parameterType="updateCustomer">
+		<![CDATA[
+		UPDATE customer SET cmail = #{cmail}, cphone = #{cphone}
+		WHERE cid = #{cid}
+		]]>
+	</update>
+	
+	
+	<update id="updateEmployee" parameterType="updateEmp">
+		<![CDATA[
+		UPDATE emp SET email = #{email}, ephone = #{ephone}
+		WHERE eid = #{eid}
+		]]>
+	</update>
+	
+	
+	<update id="updateHotel" parameterType="updateHotel">
+		<![CDATA[
+		UPDATE hotel SET hmail = #{hmail}, hphone = #{hphone}
+		WHERE hid = #{hid}
+		]]>
+	</update>
+	
+	<insert id="requestWithdraw" parameterType="withdraw">
+	<![CDATA[
+	INSERT INTO withdraw VALUES(#{cid}, to_date(sysdate, 'yy/mm/dd'), null, #{reason}, 'y')
+	]]>
+	</insert>
+	
+</mapper>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+"-//mybatis.org//DTD MAPPER 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="pay">
+
+	<!-- 결제 전 로그인 아이디 체크 -->
+	<select id="payCid" parameterType="String" resultType="String"> 
+		<![CDATA[
+		SELECT cid FROM customer WHERE cid=#{cid}
+		]]>
+	</select>
+	
+	<!-- 결제 전 로그인 비번 체크 -->
+	<select id="payLogIn" parameterType="CustomerLogIn" resultType="String"> 
+		<![CDATA[ 
+		SELECT cpw FROM customer WHERE cid=#{cid} AND cpw=#{cpw}
+		]]>
+	</select>
+
+	<!-- 결제 페이지 가격 정보 가져오기 -->
+	<select id="priceInfo" parameterType="String" resultType="int"> 
+		<![CDATA[
+		SELECT tprice FROM type WHERE tcode=#{tcode}
+		]]>
+	</select>
+
+	<!-- 결제번호 생성: 해당날짜 마지막 결제번호 가져오기 -->
+	<!--  ALTER SESSION SET nls_date_format = 'YYYY/MM/DD'; 체크-->
+	<select id="createPid" parameterType="CreatePid" resultType="String">
+		<![CDATA[
+		WITH lastPid AS (
+  			SELECT CASE WHEN COUNT(pid) > 0 THEN MAX(pid) ELSE '00000000000_0' END AS max_pid
+  			FROM pay
+  			WHERE cardco=#{cardco} AND chargedate=TO_DATE(#{chargedate},'YYYY-MM-DD')
+		)
+		SELECT SUBSTR(#{cardco}, 1, 1) || SUBSTR(#{chargedate}, 1, 4) || 
+			   SUBSTR(#{chargedate}, 6, 2) || SUBSTR(#{chargedate}, 9, 2) || 
+			   '_EC' || TO_CHAR(TO_NUMBER(SUBSTR(max_pid, 13)) + 1) AS pid 
+		FROM lastPid
+		]]>
+	</select>
+
+	<!-- 결제 정보 작성하기 -->
+	<insert id="payInfo" parameterType="Pay" >
+		<![CDATA[
+		INSERT INTO pay (pid, chargedate, expiredate, cardno, cvcno, price, cardco, cancel) 
+		VALUES (#{pid}, TO_DATE(#{chargedate}, 'YYYY-MM-DD'), TO_DATE(#{expiredate}, 'YYYY-MM-DD'), #{cardno}, #{cvcno}, #{price}, #{cardco}, #{cancel})
+		]]>
+	</insert>
+	
+	<!-- 예약완료시 화면 정보 가져오기 -->
+	<select id="complete" parameterType="String" resultType="HotelInfo">
+		<![CDATA[
+		SELECT DISTINCT h.hname, h.location
+		FROM reserve r, stock s, type t, hotel h 
+		WHERE t.tcode=#{tcode} AND r.tcode=s.tcode  
+			  AND s.tcode=t.tcode  AND t.hid= h.hid
+		]]>
+	</select>
+
+	<!-- 결제 취소번호 가져오기 -->
+	<select id="cancelPid" parameterType="String" resultType="String">
+		<![CDATA[
+		SELECT p.pid 
+		FROM reserve r, pay p
+		WHERE r.rid=#{rid} AND r.pid=p.pid
+		]]>
+	</select>
+
+	<!-- 결제 취소하기 -->
+	<update id="cancel" parameterType="String" >
+		<![CDATA[
+		UPDATE pay SET cancel='Y' WHERE pid=#{pid} 
+		]]>
+	</update>
+	  
+</mapper>

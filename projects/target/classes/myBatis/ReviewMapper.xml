@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+"-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="review">
+	<!-- 리뷰 작성 목록 -->
+	<select id="reviewList" parameterType="String" resultType="MyReview">
+		<![CDATA[
+		SELECT r.rid, hname, tname, person, checkin, checkout, tprice, rev.cid, t.tcode
+		FROM reserve r
+		    JOIN type t ON t.tcode = r.tcode
+		    JOIN hotel h ON h.hid = t.hid
+		    LEFT JOIN review rev ON rev.tcode = r.tcode AND rev.cid = r.cid
+		WHERE r.checkout < sysdate
+		    AND r.cancel = 'N'
+		    AND r.cid = #{cid}
+		    AND (rev.cid = #{cid} OR rev.cid IS NULL)
+		]]>
+	</select>
+	
+	<!-- 해당 리뷰 정보 -->
+	<select id="reviewInfo" parameterType="ReviewInfo" resultType="ReviewInfo">
+		<![CDATA[
+		SELECT t.tcode AS tcode, cid, rid, hname ||'_'|| tname AS tname, checkin ||'~'|| checkout AS usedate
+		FROM reserve r, type t, hotel h
+		WHERE h.hid=t.hid 
+			AND t.tcode = r.tcode 
+			AND rid=#{rid}
+		]]>
+	</select>
+	
+	<!-- 리뷰 작성 등록 -->
+	<insert id="reviewRegister" parameterType="Review" >
+		<![CDATA[
+		INSERT INTO review
+		VALUES(#{tcode}, #{cid}, #{rdate}, #{rating}, #{rcomment}, NULL, #{rid}, #{display})
+		]]>
+	</insert>
+	
+	<!-- 리뷰 수정 - 고객 -->
+	<update id="reviewUpdate" parameterType="UpdateReview" >
+		<![CDATA[
+		UPDATE review
+		SET rating=#{rating}, rcomment=#{rcomment}
+		WHERE rid=#{rid}
+		]]>
+	</update>
+	
+	<!-- 리뷰 삭제 - 고객 -->
+	<delete id="reviewDelete" parameterType="String" >
+		<![CDATA[
+		DELETE FROM review
+		WHERE rid=#{rid}
+		]]>
+	</delete>
+	
+	
+	
+	
+	
+	<!-- 리뷰 조회 - 고객 -->
+	<select id="reviewCus" parameterType="String" resultType="ReviewList">
+		<![CDATA[
+		SELECT cname, rdate, rating, rcomment, answer, rid
+		FROM review r, customer c
+		WHERE r.cid=c.cid AND tcode = #{tcode} AND display='Y'
+		]]>
+	</select>
+	
+	<!-- 리뷰 조회 - 업체 -->
+	<select id="reviewHot" parameterType="String" resultType="ReviewList">
+		<![CDATA[
+		SELECT cname, rdate, rating, rcomment, answer, rid
+		FROM review r, customer c
+		WHERE r.cid=c.cid AND rid= #{rid}
+		]]>
+	</select>
+		
+	<!-- 답변 조회 - 업체 -->
+	<select id="hReviewList" parameterType="String" resultType="Review">
+		<![CDATA[
+		SELECT r.*
+		FROM review r, hotel h, type t
+		WHERE  r.tcode = t.tcode AND h.hid = t.hid AND h.hid=#{hid}
+		]]>
+	</select>
+	
+	<!-- 답변 조회 - 업체 -->
+	<select id="answerInfo" parameterType="String" resultType="AnswerInfo">
+		<![CDATA[
+		SELECT hname, answer
+		FROM review r, hotel h, type t
+		WHERE r.tcode = t.tcode AND h.hid = t.hid AND rid=#{rid}
+		]]>
+	</select>
+	
+	
+	<!-- 리뷰 검색 - 객실별 -->
+	<select id="searchTcode" parameterType="SearchReview" resultType="Review">
+		<![CDATA[
+		SELECT r.*
+		FROM review r, hotel h, type t
+		WHERE r.tcode = t.tcode AND h.hid = t.hid
+			AND h.hid=#{hid} AND r.tcode=#{tcode}
+		]]>
+	</select>
+	
+	<!--  리뷰 검색 - 미답변 -->
+	<select id="nullAnswer" parameterType="String" resultType="Review">
+		<![CDATA[
+		SELECT r.*
+		FROM review r, hotel h, type t
+		WHERE  r.tcode = t.tcode AND h.hid = t.hid 
+			AND h.hid=#{hid}
+			AND answer IS NULL
+		]]>
+	</select>
+	
+	<!--  리뷰 검색 - 미답변, 객실별 -->
+	<select id="nullAndTcode" parameterType="SearchReview" resultType="Review">
+		<![CDATA[
+		SELECT r.*
+		FROM review r, hotel h, type t
+		WHERE  r.tcode = t.tcode AND h.hid = t.hid 
+			AND h.hid=#{hid}
+			AND r.tcode=#{tcode}
+			AND answer IS NULL
+		]]>
+	</select>
+	
+	
+	<!-- 리뷰 답변 - 업체 -->
+	<update id="answerUpdate" parameterType="UpdateAnswer" >
+		<![CDATA[
+		UPDATE review
+		SET answer=#{answer}
+		WHERE rid=#{rid}
+		]]>
+	</update>
+	
+	<!-- 신고 번호 생성-->
+	<select id="createRpno" parameterType="String" resultType="String">
+		<![CDATA[
+		WITH lastRpno AS (
+  			SELECT CASE WHEN COUNT(rpno) > 0 THEN MAX(rpno) ELSE '000000000_0' END AS max_rpno
+  			FROM rvreport
+  			WHERE rpdate=TO_DATE(#{rpdate},'YYYY-MM-DD')
+		)
+		SELECT 'R' || SUBSTR(#{rpdate}, 1, 4) || 
+			   SUBSTR(#{rpdate}, 6, 2) || SUBSTR(#{rpdate}, 9, 2) || '_' ||
+			   TO_CHAR(TO_NUMBER(SUBSTR(max_rpno, 11)) + 1) AS rpno
+		FROM lastRpno
+		]]>
+	</select>
+	
+	<!-- 리뷰 신고 -->
+	<insert id="report" parameterType="Report" >
+		<![CDATA[
+		INSERT INTO rvreport (rpno, rvno, idtype, id, status, rpdate, reason, answer)
+		VALUES(#{rpno}, #{rid}, #{type}, #{id}, #{status}, #{rpdate}, #{reason}, #{answer})
+		]]>
+	</insert>
+	
+	<!-- 동일 아이디 동일 신고 재방지 -->
+	<select id="prevent" parameterType="Prevent" resultType="Integer">
+		<![CDATA[
+		SELECT COUNT(*) AS prevent
+		FROM rvreport
+		WHERE rvno=#{rid} AND idtype=#{type} AND id=#{id}
+		]]>
+	</select>
+	
+	<!-- 내 신고 내역 -->
+	<select id="myReport" parameterType="Prevent" resultType="MyReport">
+		<![CDATA[
+		SELECT DISTINCT rp.rpno rpno, h.hname||t.tname gname, rv.rcomment rcomment, rp.reason reason, rp.status status
+		FROM rvreport rp, hotel h, type t, reserve r, stock s, review rv
+		WHERE r.tcode = s.tcode AND s.tcode= t.tcode AND t.hid = h.hid AND rv.rid = r.rid AND rv.rid = rp.rvno
+		AND rp.idtype=#{type} AND rp.id=#{id}
+		]]>
+	</select>
+	
+	
+	<!-- 관리자 신고 화면 -->
+	<select id="reviewManage" resultType="Report">
+		<![CDATA[
+		SELECT rpno, rvno rid, idtype type, id, status, rpdate, reason, answer 
+		FROM rvreport
+		]]>
+	</select>
+	
+	
+	<!-- 관리자 신고 화면: 아이디로 검색-->
+	<select id="reviewById" parameterType="ById" resultType="Report">
+		<![CDATA[
+		SELECT rpno, rvno rid, idtype type, id, status, rpdate, reason, answer 
+		FROM rvreport
+		WHERE idtype=#{type} AND id=#{id} AND answer IN (#{answer},'N')
+		]]>
+	</select>
+	
+	<!-- 관리자 신고 화면: 아이디+미답변 검색-->
+	<select id="reviewByAnswerId" parameterType="ById" resultType="Report">
+		<![CDATA[
+		SELECT rpno, rvno rid, idtype type, id, status, rpdate, reason, answer 
+		FROM rvreport
+		WHERE idtype=#{type} AND id=#{id} AND answer=#{answer}
+		]]>
+	</select>
+	
+	<!-- 관리자 신고 화면: 신고번호로 검색 -->
+	<select id="reviewByRpno" parameterType="ByRpno" resultType="Report">
+		<![CDATA[
+		SELECT rpno, rvno rid, idtype type, id, status, rpdate, reason, answer 
+		FROM rvreport
+		WHERE rpno=#{rpno} and answer IN (#{answer},'N')
+		]]>
+	</select>
+	
+	<!-- 관리자 신고 화면: 신고번호+미답변 검색 -->
+	<select id="reviewByAnswerRpno" parameterType="ByRpno" resultType="Report">
+		<![CDATA[
+		SELECT rpno, rvno rid, idtype type, id, status, rpdate, reason, answer 
+		FROM rvreport
+		WHERE rpno=#{rpno} and answer=#{answer}
+		]]>
+	</select>
+	
+	
+	<!-- 관리자 신고 화면: 미답변 검색 -->
+	<select id="reviewByAnswer" parameterType="String" resultType="Report">
+		<![CDATA[
+		SELECT rpno, rvno rid, idtype type, id, status, rpdate, reason, answer 
+		FROM rvreport
+		WHERE answer=#{answer}
+		]]>
+	</select>
+	
+	
+	<!-- 리뷰 신고 처리 화면 -->
+	<select id="reviewProcess" parameterType="String" resultType="ReviewProcess">
+		<![CDATA[
+		SELECT rid, cid, rcomment,display 
+		FROM review 
+		WHERE rid=#{rid}
+		]]>
+	</select>
+
+	
+	<!-- 리뷰 안보이게 변경 -->
+	<update id="delete" parameterType="String" >
+		<![CDATA[
+		UPDATE review
+		SET display='N' WHERE rid=#{rid}
+		]]>
+	</update>
+	
+	
+	<!-- 리뷰 처리 답변 -->
+	<update id="answer" parameterType="ReportManage" >
+		<![CDATA[
+		UPDATE rvreport
+		SET status=#{status}, answer=#{answer} WHERE idtype=#{type} AND id=#{id} AND rvno=#{rid}
+		]]>
+	</update>
+	
+</mapper>

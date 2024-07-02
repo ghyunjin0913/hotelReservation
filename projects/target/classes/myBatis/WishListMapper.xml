@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+"-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="wishList">
+
+	<!-- 내 찜목록 조회 -->
+	<select id="myWishList" parameterType="String" resultType="MyWishList" >
+		<![CDATA[
+		SELECT h.hname hname, t.tname tname, w.tcode tcode, h.img img, t.tprice tprice
+		FROM wishlist w, hotel h, type t  
+		WHERE w.cid=#{cid} AND w.hid=h.hid AND w.tcode=t.tcode
+		]]>
+	</select>
+	
+	
+	<!-- 내 찜 예약 -->
+	<select id="reserve" parameterType="String" resultType="WishReserve" >
+		<![CDATA[
+		SELECT h.hname hname, t.tname tname, t.tprice tprice, t.max max
+		FROM hotel h, type t 
+		WHERE t.tcode=#{tcode} AND t.hid=h.hid
+		]]>
+	</select>
+	
+	
+	<!-- 찜 예약 가능 확인 -->
+	<select id="check" parameterType="CheckReserve" resultType="Type">
+		<![CDATA[
+		SELECT DISTINCT t.tcode AS tcode, tname, max, tprice, s.amounts AS amounts
+		FROM type t, stock s
+		JOIN (
+		    SELECT tcode, MIN(amounts) AS min_amounts
+		    FROM stock
+		    WHERE sdate >= #{checkIn} AND sdate <= #{checkOut} AND tcode = #{tcode}
+		    GROUP BY tcode
+		) min_s ON s.tcode = min_s.tcode AND s.amounts = min_s.min_amounts
+		WHERE t.tcode = s.tcode AND max >= #{max} AND t.tcode = #{tcode}
+		]]>
+	</select>
+	
+	<!-- 특정상품의 고객 찜 상태 확인 -->
+	<select id="wishList" parameterType="String" resultType="WishList" >
+		<![CDATA[
+		SELECT hid, tcode, tprice
+		FROM wishlist
+		WHERE cid=#{cid}
+		]]>
+	</select>
+	
+	
+	<!-- 고객 찜 추가 -->	
+	<insert id="addDibs" parameterType="WishList">
+		<![CDATA[
+		INSERT INTO wishlist (cid, hid, tcode, tprice)
+		VALUES (#{cid}, #{hid}, #{tcode}, #{tprice}) 
+		]]>
+	</insert>
+	
+	
+	<!-- 고객 찜 취소 -->	
+	<delete id="cancelDibs" parameterType="CancelDibs">
+		<![CDATA[
+		DELETE FROM wishlist WHERE cid=#{cid} AND tcode=#{tcode}
+		]]>
+	</delete>
+	
+	
+	<!-- 상품 찜 개수 제한 -->
+	<select id="myWishNo" parameterType="String" resultType="int" >
+		<![CDATA[
+		SELECT COUNT(*) AS MyWISH_NO
+		FROM wishlist
+		WHERE cid=#{cid}
+		]]>
+	</select>
+	
+	
+	<!-- 특정 상품 찜 개수-->
+	<select id="wishNo" parameterType="String" resultType="int" >
+		<![CDATA[
+		SELECT COUNT(*) AS WISH_NO
+		FROM wishlist
+		WHERE tcode=#{tcode} 
+		]]>
+	</select>
+	
+</mapper>

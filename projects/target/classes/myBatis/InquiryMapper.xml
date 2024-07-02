@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+"-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="inquiry">
+	<select id="boardSelectById" parameterType="string" resultType="inquiry">
+	SELECT ino, id, title, status, to_char(registerdate, 'yyyy-mm-dd') AS registerDate
+	FROM inquiry
+	WHERE id = #{id}
+	</select>
+	
+	<select id="boardList" resultType="inquiry">
+	SELECT ino, idtype, id, title, status, to_char(registerdate, 'yyyy-mm-dd') AS registerDate
+	FROM inquiry
+	WHERE status = '요청'
+	</select>
+	
+	<select id="readBoard" parameterType="int" resultType="inquiry">
+	SELECT ino, idtype, id, title, contents, registerdate, answer
+	FROM inquiry
+	WHERE ino = #{ino}
+	</select>
+	
+	<update id="updateBoard" parameterType="inquiry">
+	UPDATE inquiry
+	SET title = #{title}, contents = #{contents}
+	WHERE ino = #{ino}
+	</update>
+	
+	<delete id="deleteBoard" parameterType="int">
+	DELETE FROM inquiry
+	WHERE ino = #{ino}
+	</delete>
+	
+	<insert id="insertBoard" parameterType="insertInquiry">
+	INSERT INTO inquiry VALUES(seqinquiry.nextval, #{idtype}, #{id}, #{title}, #{contents}, '요청', to_date(sysdate, 'yy/mm/dd'), null)
+	</insert>
+	
+	<update id="answerBoard" parameterType="answerInquiry">
+	UPDATE inquiry
+	SET answer = #{answer}, status = '답변완료'
+	WHERE ino = #{ino}
+	</update>
+</mapper>

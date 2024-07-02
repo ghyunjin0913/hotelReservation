@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+"-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="manage">
+	<select id="checkReservation" resultType="reservationCount">
+		<![CDATA[
+		SELECT c.cid, cname, rname, count(chargedate) AS cnt
+		FROM customer c, rsvno r
+		WHERE c.cid = r.cid AND EXTRACT(YEAR FROM "CHARGEDATE")=EXTRACT(YEAR FROM SYSDATE)
+		GROUP BY c.cid, cname, rname
+		]]>
+	</select>
+	
+	<update id="updateRank">
+		<![CDATA[
+		UPDATE customer c
+		SET rname = (
+		    SELECT CASE 
+		        WHEN COUNT(r.chargedate) >= 5 THEN '우수'
+		        WHEN COUNT(r.chargedate) < 5 THEN '일반'
+		        END
+		    FROM rsvno r
+		    WHERE EXTRACT(YEAR FROM r.chargedate) = EXTRACT(YEAR FROM SYSDATE)
+		    AND c.cid = r.cid
+		    GROUP BY r.cid
+		)
+		WHERE EXISTS (
+		    SELECT 1
+		    FROM rsvno r
+		    WHERE EXTRACT(YEAR FROM r.chargedate) = EXTRACT(YEAR FROM SYSDATE)
+		    AND c.cid = r.cid
+		    GROUP BY r.cid
+		    HAVING COUNT(r.chargedate) >= 5
+		)
+		]]>
+	</update>
+	
+	<select id="checkEmployee" resultType="empMyInfo">
+	<![CDATA[
+	SELECT eid, ename, email, ephone, dno, position, status, to_char(joindate, 'yyyy-mm-dd') AS joinDate, to_char(retiredate, 'yyyy-mm-dd') AS retireDate
+	FROM emp
+	]]>
+	</select>
+	
+	<select id="checkEmpInfo" resultType="empMyInfo">
+	<![CDATA[
+	SELECT email, dno, position, status, to_char(joindate, 'yy/mm/dd') AS joinDate, to_char(retiredate, 'yy/mm/dd') AS retireDate
+	FROM emp
+	WHERE eid = #{eid}
+	]]>
+	</select>
+	<update id="updateEmpInfo" parameterType="empMyInfo">
+		<![CDATA[
+		UPDATE emp
+		SET dno = #{dno}, position = #{position}, status = #{status}, retiredate = to_date(#{retireDate}, 'yy/mm/dd')
+		WHERE email = #{email}
+		]]>
+	</update>
+	
+	<select id="checkWithdraw" resultType="Withdraw">
+	<![CDATA[
+	SELECT cid, expdate, reason, status
+	FROM withdraw
+	WHERE status = 'y'
+	]]>
+	</select>
+	
+	<update id="updateWithdraw">
+	<![CDATA[
+	UPDATE withdraw
+	SET expdate = to_date(sysdate, 'yy/mm/dd'), status = 'n'
+	WHERE status = 'y'
+	]]>
+	</update>
+	<!-- 호텔 조회 -->
+	<select id="checkHotel" resultType="Hotel">
+		<![CDATA[
+		SELECT * FROM hotel
+		]]>
+	</select>
+	
+	<!-- 호텔 검색 - 업체코드 -->
+	<select id="searchHid" parameterType="String" resultType="Hotel">
+		<![CDATA[
+		SELECT * FROM hotel
+		WHERE hid=#{hid}
+		]]>
+	</select>
+	
+	<!-- 호텔 검색 - 호텔명 -->
+	<select id="searchHotel" parameterType="String" resultType="Hotel">
+		<![CDATA[
+		SELECT * FROM hotel
+		WHERE hname LIKE '%'|| #{hname} || '%'
+		]]>
+	</select>
+	
+	<!-- 객실 조회 -->
+	<select id="checkType" resultType="Type">
+		<![CDATA[
+		SELECT * FROM type
+		]]>
+	</select>
+	<!-- 객실 검색 - 업체코드 -->
+	<select id="searchTypeHid" parameterType="String" resultType="Type">
+		<![CDATA[
+		SELECT * FROM type
+		WHERE hid=#{hid}
+		]]>
+	</select>
+	<!-- 객실 검색 - 호텔명 -->
+	<select id="searchTypeHotel" parameterType="String" resultType="Type">
+		<![CDATA[
+		SELECT t.* FROM type t, hotel h
+		WHERE t.hid=h.hid AND hname LIKE '%'|| #{hname} || '%'
+		]]>
+	</select>
+	
+</mapper>

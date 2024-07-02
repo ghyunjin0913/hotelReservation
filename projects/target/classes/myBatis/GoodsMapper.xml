@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+"-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="goods">
+
+	<!-- 호텔정보 select-->
+	<select id="selectHotel" parameterType="String" resultType="Hotel" >
+		<![CDATA[
+		SELECT hname, hphone, grade, location
+		FROM hotel
+		WHERE hid=#{hid}
+		]]>
+	</select>
+	
+	<!-- 호텔정보 update -->
+	<update id="updateHotel" parameterType="UpdateHotelDetail" >
+		<![CDATA[
+		UPDATE hotel
+		SET grade=#{grade}, location=#{location}
+		WHERE hid=#{hid}
+		]]>
+	</update>
+	
+	<!-- 객실번호 마지막값 추출 후 + 1 -->
+	<select id="findMaxTcode" parameterType="String" resultType="String">
+		<![CDATA[
+		WITH MaxTcode AS (
+		    SELECT hid, MAX(tcode) AS max_num
+		    FROM type
+		    WHERE hid=#{hid}
+		    GROUP BY hid
+		)
+		SELECT hid || '_' || LPAD(NVL(SUBSTR(max_num, LENGTH(hid) + 2), 0) + 1, 2, '0') AS new_tcode
+		FROM MaxTcode
+		]]>
+	</select>
+	
+	<!-- 객실 등록 -->
+	<insert id="registerGoods" parameterType="type">
+		<![CDATA[
+		INSERT INTO type
+		VALUES(#{tcode}, #{hid}, #{tname}, #{max}, #{tprice}, #{amounts})
+		]]>
+	</insert>
+		
+	<!-- 객실번호 마지막값 추출 -->
+	<select id="findTcode" parameterType="String" resultType="String">
+		<![CDATA[		
+		SELECT MAX(tcode) AS tcode
+		FROM type
+		WHERE hid=#{hid}
+		]]>
+	</select>
+	
+	<!-- 객실 세부정보 등록 -->
+	<insert id="registerGoodsDetails" parameterType="Tdetails">
+		<![CDATA[
+		INSERT INTO tdetails
+		VALUES(#{tcode}, #{exp}, #{bedtype}, #{bedno}, #{tview}, #{smoke},
+		#{tsize}, #{bathtype}, #{breakfast})
+		]]>
+	</insert>
+	
+	<!-- 호텔 리스트 출력 -->
+	<select id="hotelList" resultType="SearchResult">
+		<![CDATA[
+		SELECT h.hid AS hid, hname, grade, MIN(tprice) AS tprice
+		FROM hotel h, type t
+		WHERE h.hid=t.hid 
+		GROUP BY h.hid, hname, grade
+		]]>
+	</select>
+	
+	<!-- 검색 결과 출력 - 기본 -->
+	<select id="searchList" parameterType="SearchHotel" resultType="SearchResult">
+		<![CDATA[
+		SELECT h.hid AS hid, hname, grade, MIN(tprice) AS tprice
+		FROM hotel h
+		JOIN type t ON h.hid=t.hid
+		JOIN stock s ON t.tcode=s.tcode
+		WHERE s.sdate BETWEEN #{checkIn} AND #{checkOut}
+		 	  AND s.amounts > 0 
+		      AND max>=#{person} 
+		 	  AND location=#{location}
+		GROUP BY h.hid, hname, grade
+		]]>
+	</select>
+
+	<!--  검색 결과 출력 - 검색어  -->
+	<select id="searchHotel" parameterType="SearchHotel" resultType="SearchResult">
+		<![CDATA[ 
+		SELECT h.hid AS hid, hname, grade, MIN(tprice) AS tprice
+		FROM hotel h 
+		JOIN type t ON h.hid=t.hid 
+		JOIN stock s ON t.tcode=s.tcode 
+		WHERE s.sdate BETWEEN #{checkIn} 
+			AND #{checkOut} AND s.amounts > 0 
+			AND max>=#{person} AND location=#{location} 
+			AND hname LIKE '%'||#{hname}||'%' 
+		GROUP BY h.hid, hname, grade 
+		]]>
+	</select>
+	
+	<!-- 객실 타입 출력 -->
+	<select id="goodsType" parameterType="String" resultType="Type">
+		<![CDATA[
+		SELECT tcode, tname, max, tprice
+		FROM type
+		WHERE tcode=#{tcode}
+		]]>
+	</select>
+	
+	<select id="hotelDetails" parameterType="hdetails" resultType="Type">
+		<![CDATA[
+		SELECT DISTINCT t.tcode AS tcode, tname, max, tprice, s.amounts AS amounts
+		FROM type t, hotel h, stock s
+		JOIN (
+		    SELECT tcode, MIN(amounts) AS min_amounts
+		    FROM stock
+		    WHERE sdate >= #{checkIn} AND sdate <= #{checkOut}
+		    GROUP BY tcode
+		) min_s ON s.tcode = min_s.tcode AND s.amounts = min_s.min_amounts
+		WHERE h.hid = t.hid AND t.tcode = s.tcode AND t.hid = #{hid} AND max >= #{max}
+		ORDER BY tprice
+		]]>
+	</select>
+	
+	<!-- 객실 세부정보 출력-->
+	<select id="goodsDetails" parameterType="String" resultType="Tdetails">
+		<![CDATA[
+		SELECT tcode, exp, bedtype, bedno, tview, smoke,
+			   tsize, bathtype, breakfast
+		FROM tdetails
+		WHERE tcode=#{tcode}
+		]]>
+	</select>
+	
+	<!-- 호텔 등록 객실 조회 -->
+	<select id="roomManage" parameterType="String" resultType="Room">
+		<![CDATA[
+		SELECT t.tcode, tname, max, tprice, amounts, hid, exp, bedtype,
+				bedno, tview, smoke, tsize, bathtype, breakfast
+		FROM type t, tdetails d
+		WHERE hid=#{hid} AND t.tcode=d.tcode
+		]]>
+	</select>
+	
+	<!-- 객실 등록 삭제 -->
+	<delete id="deleteGoods" parameterType="String">
+		<![CDATA[
+		DELETE FROM type
+		WHERE tcode=#{tcode}
+		]]>
+	</delete>
+	
+	<!-- 객실 정보 업데이트 -->
+	<update id="updateGoods" parameterType="Type">
+		<![CDATA[
+		UPDATE type
+		SET  tname=#{tname}, max=#{max}, tprice=#{tprice}, amounts=#{amounts}
+		WHERE tcode=#{tcode}
+		]]>
+	</update>
+	
+	<update id="updateGoodsDetail" parameterType="Tdetails">
+		<![CDATA[
+		UPDATE tdetails
+		SET exp=#{exp}, bedtype=#{bedtype}, bedno=#{bedno}, tview=#{tview}, smoke=#{smoke},
+		tsize=#{tsize}, bathtype=#{bathtype}, breakfast=#{breakfast}
+		WHERE tcode=#{tcode}
+		]]>
+	</update>
+	
+</mapper>
